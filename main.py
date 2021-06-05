@@ -1,5 +1,6 @@
+from urllib.parse import SplitResult
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
 from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse
 import air_telemetry as telemetry
 from dotenv import load_dotenv
@@ -8,7 +9,7 @@ from deta import Deta
 from typing import Optional
 import yaml
 from datetime import date, datetime
-from lxml import objectify
+from lxml import objectify, etree
 
 
 """
@@ -116,18 +117,22 @@ def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
-    sites = objectify.Element("sites")
+    sites = objectify.Element("sites", nsmap='', _pytype='')
     # -------------------------------------
     # change with list yaml format
     # -------------------------------------
     for item in data:
-        site = objectify.Element("site")
+        site = objectify.Element("site", nsmap='', _pytype='')
         site.domain = item["domain"]
         site.date = "15. September 2019"
         site.reason = "Reposting site"
         site.notes = "Reposting site"
         site.path = "/"
         sites.append(site)
+    
+    objectify.deannotate(sites)
+    etree.cleanup_namespaces(sites)
+    return Response(content=etree.tostring(sites, pretty_print=True, xml_declaration=True, with_tail=False), media_type="application/xml")
 
 @app.get("/sites.nbt")
 def get_nbt(background_tasks: BackgroundTasks):
