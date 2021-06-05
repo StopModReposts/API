@@ -1,0 +1,6 @@
+deta
+uvicorn
+fastapi
+air_telemetry
+python-dotenv
+requests
