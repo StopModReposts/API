@@ -1,7 +1,7 @@
 from urllib.parse import SplitResult
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
-from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse, FileResponse
 import air_telemetry as telemetry
 from dotenv import load_dotenv
 import os
@@ -53,6 +53,10 @@ def statcounter():
 @app.get("/")
 def root():
     return RedirectResponse("https://stopmodreposts.org")
+
+@app.get("/favicon.ico")
+def favicon():
+    return FileResponse("favicon.ico")
 
 @app.get("/sites.yaml")
 def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
