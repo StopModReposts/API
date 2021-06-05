@@ -54,20 +54,23 @@ def root():
     return RedirectResponse("https://stopmodreposts.org")
 
 @app.get("/sites.yaml")
-def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
+def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
     background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         
 @app.get("/sites.json")
-def get_json(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
+def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
     background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     return yaml.load(res.read(), Loader=yaml.FullLoader)
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
-def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
+def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
     background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     txt = ""
@@ -76,8 +79,9 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
-def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
+def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
     background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     with open("templates/hosts.txt", "r") as f:
