@@ -25,7 +25,6 @@ Responses:
 load_dotenv()
 TELEMETRY_TOKEN = os.getenv("TELEMETRY_TOKEN")
 DETA_TOKEN = os.getenv("DETA_TOKEN")
-lists = ["minecraft.yaml", "stardewvalley.yaml", "subnautica.yaml"]
 
 app = FastAPI()
 logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
