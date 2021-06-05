@@ -19,7 +19,7 @@ DETA_TOKEN = os.getenv("DETA_TOKEN")
 app = FastAPI(title="StopModReposts API",
               description="The official StopModReposts API to get our list in all kinds of formats.",
               version="2.0",
-              docs_url=None,
+              docs_url="/debug",
               redoc_url="/docs")
 logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 deta = Deta(DETA_TOKEN)
