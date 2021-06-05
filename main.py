@@ -6,6 +6,19 @@ from dotenv import load_dotenv
 import os
 from deta import Deta
 from typing import Optional
+import yaml
+
+
+"""
+Responses:
+- yaml [DONE]
+- txt
+- json [DONE]
+- xml
+- hosts.txt
+- ublacklist
+- nbt
+"""
 
 
 load_dotenv()
@@ -24,8 +37,8 @@ db = deta.Base("formats")
 def root():
     return RedirectResponse("https://stopmodreposts.org")
 
-@app.get("/sites.yaml", response_class=PlainTextResponse)
-def yaml(game: Optional[str] = None):
+@app.get("/sites.yaml")
+def get_yaml(game: Optional[str] = None):
     if game is None:
         try:
             res = drive.get("minecraft.yaml")
@@ -38,6 +51,16 @@ def yaml(game: Optional[str] = None):
             return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         except AttributeError:
             return {"msg": "Error - No file available"}
+        
+@app.get("/sites.json")
+def get_json(game: Optional[str] = None):
+    if game is None:
+        res = drive.get("minecraft.yaml")
+        return yaml.load(res.read(), Loader=yaml.FullLoader)
+    else:
+        res = drive.get("{0}.yaml".format(game))
+        return yaml.load(res.read(), Loader=yaml.FullLoader)
+        
 
 
 if __name__ == "__main__":

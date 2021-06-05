@@ -5,3 +5,4 @@ air_telemetry
 python-dotenv
 requests
 colorama
+pyyaml
