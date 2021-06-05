@@ -54,48 +54,39 @@ def root():
     return RedirectResponse("https://stopmodreposts.org")
 
 @app.get("/sites.yaml")
-def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
     background_tasks.add_task(statcounter)
-    if game is None:
-        try:
-            res = drive.get("minecraft.yaml")
-            return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
-        except AttributeError:
-            return {"msg": "Error - No file available"}
-    else:
-        try:
-            res = drive.get("{0}.yaml".format(game))
-            return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
-        except AttributeError:
-            return {"msg": "Error - No file available"}
+    res = drive.get("{0}.yaml".format(game))
+    return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         
 @app.get("/sites.json")
-def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
+def get_json(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
     background_tasks.add_task(statcounter)
-    if game is None:
-        res = drive.get("minecraft.yaml")
-        return yaml.load(res.read(), Loader=yaml.FullLoader)
-    else:
-        res = drive.get("{0}.yaml".format(game))
-        return yaml.load(res.read(), Loader=yaml.FullLoader)
+    res = drive.get("{0}.yaml".format(game))
+    return yaml.load(res.read(), Loader=yaml.FullLoader)
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
-def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
+def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
     background_tasks.add_task(statcounter)
-    if game is None:
-        res = drive.get("minecraft.yaml")
-        data = yaml.load(res.read(), Loader=yaml.FullLoader)
-        txt = ""
-        for item in data:
-            txt = txt + item["domain"] + "\n"
-        return txt
-    else:
-        res = drive.get("{0}.yaml".format(game))
-        data = yaml.load(res.read(), Loader=yaml.FullLoader)
-        txt = ""
-        for item in data:
-            txt = txt + item["domain"] + "\n"
-        return txt
+    res = drive.get("{0}.yaml".format(game))
+    data = yaml.load(res.read(), Loader=yaml.FullLoader)
+    txt = ""
+    for item in data:
+        txt = txt + item["domain"] + "\n"
+    return txt
+    
+@app.get("/hosts.txt", response_class=PlainTextResponse)
+def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"):
+    background_tasks.add_task(statcounter)
+    res = drive.get("{0}.yaml".format(game))
+    data = yaml.load(res.read(), Loader=yaml.FullLoader)
+    with open("templates/hosts.txt", "r") as f:
+        hosts = f.read().format(str(datetime.now()))
+    hosts = hosts + "\n \n"
+    for item in data:
+        hosts = hosts  + "0.0.0.0 " + item["domain"] + "\n" 
+    hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
+    return hosts
 
 
 if __name__ == "__main__":
