@@ -8,6 +8,7 @@ from deta import Deta
 from typing import Optional
 import yaml
 from datetime import date, datetime
+from lxml import objectify
 
 
 """
@@ -91,10 +92,48 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
     hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
     return hosts
 
+@app.get("/ublacklist",response_class=PlainTextResponse)
+def get_ublacklist(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
+    res = drive.get("{0}.yaml".format(game))
+    data = yaml.load(res.read(), Loader=yaml.FullLoader)
+    blacklist = ""
+    for item in data:
+        try:
+            # -------------------------------------
+            # remove/change with list yaml format
+            # -------------------------------------
+            path = item["path"] + "/*"
+        except:
+            path = "/*"
+        blacklist = blacklist + "*://*." + item["domain"] + path + "\n"
+    return blacklist
+
+@app.get("/sites.xml")
+def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    background_tasks.add_task(statcounter)
+    if game is None: game = "sites"
+    res = drive.get("{0}.yaml".format(game))
+    data = yaml.load(res.read(), Loader=yaml.FullLoader)
+    sites = objectify.Element("sites")
+    # -------------------------------------
+    # change with list yaml format
+    # -------------------------------------
+    for item in data:
+        site = objectify.Element("site")
+        site.domain = item["domain"]
+        site.date = "15. September 2019"
+        site.reason = "Reposting site"
+        site.notes = "Reposting site"
+        site.path = "/"
+        sites.append(site)
+
 @app.get("/sites.nbt")
 def get_nbt(background_tasks: BackgroundTasks):
     background_tasks.add_task(statcounter)
     raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
 
+    
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=80)
