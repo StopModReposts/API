@@ -8,32 +8,24 @@ import os
 from deta import Deta
 from typing import Optional
 import yaml
-from datetime import date, datetime
+from datetime import date, datetime, time
 from lxml import objectify, etree
-
-
-"""
-Responses:
-- yaml [DONE]
-- txt [DONE]
-- json [DONE]
-- xml
-- hosts.txt [DONE]
-- ublacklist
-- nbt [DONE]
-"""
 
 
 load_dotenv()
 TELEMETRY_TOKEN = os.getenv("TELEMETRY_TOKEN")
 DETA_TOKEN = os.getenv("DETA_TOKEN")
 
-app = FastAPI()
+app = FastAPI(title="StopModReposts API",
+              description="The official StopModReposts API to get our list in all kinds of formats.",
+              version="2.0",
+              docs_url=None,
+              redoc_url="/docs")
 logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
-
+        
 
 def statcounter():
     try:
@@ -60,6 +52,10 @@ def favicon():
 
 @app.get("/sites.yaml")
 def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the YAML format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -67,6 +63,10 @@ def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
         
 @app.get("/sites.json")
 def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the JSON format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -74,6 +74,10 @@ def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
 def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the TXT format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -84,7 +88,11 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
-def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
+def get_hosts(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the HOSTS.TXT format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -99,6 +107,10 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
 
 @app.get("/ublacklist",response_class=PlainTextResponse)
 def get_ublacklist(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the uBlacklist format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -117,6 +129,10 @@ def get_ublacklist(background_tasks: BackgroundTasks, game: Optional[str] = None
 
 @app.get("/sites.xml")
 def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+    """
+    Get the combined list in the XML format.
+    """
+    
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
@@ -140,6 +156,10 @@ def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
 
 @app.get("/sites.nbt")
 def get_nbt(background_tasks: BackgroundTasks):
+    """
+    Get the combined list in the NBT format **(deprecated - will be removed soon)**.
+    """
+    
     background_tasks.add_task(statcounter)
     raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
 
