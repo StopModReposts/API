@@ -1,2 +1,2 @@
-# api
+# StopModReposts API
 Official StopModReposts API
