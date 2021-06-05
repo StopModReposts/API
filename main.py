@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse
 import air_telemetry as telemetry
 from dotenv import load_dotenv
@@ -16,9 +16,9 @@ Responses:
 - txt [DONE]
 - json [DONE]
 - xml
-- hosts.txt
+- hosts.txt [DONE]
 - ublacklist
-- nbt
+- nbt [DONE]
 """
 
 
@@ -88,6 +88,10 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = "minecraft"
     hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
     return hosts
 
+@app.get("/sites.nbt")
+def get_nbt(background_tasks: BackgroundTasks):
+    background_tasks.add_task(statcounter)
+    raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=80)
