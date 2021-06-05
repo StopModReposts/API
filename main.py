@@ -44,7 +44,7 @@ def statcounter():
 
 @app.get("/")
 def root():
-    return RedirectResponse("https://stopmodreposts.org")
+    return RedirectResponse("/docs")
 
 @app.get("/favicon.ico")
 def favicon():
