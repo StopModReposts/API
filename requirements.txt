@@ -8,3 +8,4 @@ colorama
 pyyaml
 lxml
 aiofiles
+slowapi
