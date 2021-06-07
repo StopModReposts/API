@@ -1,7 +1,10 @@
 from urllib.parse import SplitResult
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse, FileResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import air_telemetry as telemetry
 from dotenv import load_dotenv
 import os
@@ -21,6 +24,9 @@ app = FastAPI(title="StopModReposts API",
               version="2.0",
               docs_url="/debug",
               redoc_url="/docs")
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
@@ -43,15 +49,18 @@ def statcounter():
         })
 
 @app.get("/")
-def root():
+@limiter.limit("1000/minute")
+def root(request: Request):
     return RedirectResponse("/docs")
 
 @app.get("/favicon.ico")
-def favicon():
+@limiter.limit("1000/minute")
+def favicon(request: Request):
     return FileResponse("favicon.ico")
 
 @app.get("/sites.yaml")
-def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_yaml(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the YAML format.
     """
@@ -62,7 +71,8 @@ def get_yaml(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         
 @app.get("/sites.json")
-def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_json(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the JSON format.
     """
@@ -73,7 +83,8 @@ def get_json(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return yaml.load(res.read(), Loader=yaml.FullLoader)
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
-def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_txt(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the TXT format.
     """
@@ -88,7 +99,8 @@ def get_txt(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
-def get_hosts(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the HOSTS.TXT format.
     """
@@ -106,7 +118,8 @@ def get_hosts(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return hosts
 
 @app.get("/ublacklist",response_class=PlainTextResponse)
-def get_ublacklist(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_ublacklist(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the uBlacklist format.
     """
@@ -128,7 +141,8 @@ def get_ublacklist(background_tasks: BackgroundTasks, game: Optional[str] = None
     return blacklist
 
 @app.get("/sites.xml")
-def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
+@limiter.limit("20/minute")
+def get_xml(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the XML format.
     """
@@ -155,7 +169,8 @@ def get_xml(background_tasks: BackgroundTasks, game: Optional[str] = None):
     return Response(content=etree.tostring(sites, pretty_print=True, xml_declaration=True, with_tail=False), media_type="application/xml")
 
 @app.get("/sites.nbt")
-def get_nbt(background_tasks: BackgroundTasks):
+@limiter.limit("20/minute")
+def get_nbt(request: Request, background_tasks: BackgroundTasks):
     """
     Get the combined list in the NBT format **(deprecated - will be removed soon)**.
     """
