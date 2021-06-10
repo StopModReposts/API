@@ -31,6 +31,7 @@ logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TO
 deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
+times = deta.Base("smr-timestamps")
         
 
 def statcounter():
@@ -95,7 +96,14 @@ def get_txt(request: Request, background_tasks: BackgroundTasks, game: Optional[
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     txt = ""
     for item in data:
-        txt = txt + item["domain"] + "\n"
+        # -------------------------------------
+        # change with list yaml format
+        # -------------------------------------
+        try:
+            path = item["path"]
+        except:
+            path = ""
+        txt = txt + item["domain"] + path + "\n"
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
@@ -107,13 +115,27 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
+    try:
+        if game is None:
+            request = next(times.fetch({"job": "cron-all"}))[0]
+        else:
+            request = next(times.fetch({"job": "cron-single"}))[0]
+    except:
+        request = "ERROR - TIMESTAMP DB IS NOT WORKING"
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     with open("templates/hosts.txt", "r") as f:
-        hosts = f.read().format(str(datetime.now()))
+        hosts = f.read().format(str(request["updated"]))
     hosts = hosts + "\n \n"
     for item in data:
-        hosts = hosts  + "0.0.0.0 " + item["domain"] + "\n" 
+        # -------------------------------------
+        # change with list yaml format
+        # -------------------------------------
+        try:
+            path = item["path"]
+        except:
+            path = ""
+        hosts = hosts  + "0.0.0.0 " + item["domain"] + path + "\n" 
     hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
     return hosts
 
@@ -177,7 +199,6 @@ def get_nbt(request: Request, background_tasks: BackgroundTasks):
     
     background_tasks.add_task(statcounter)
     raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
-
     
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=80)
