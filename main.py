@@ -48,6 +48,16 @@ def statcounter():
             "month": month,
             "total": 1
         })
+        
+def timestamps(game):
+    try:
+        if game is None:
+            request = next(times.fetch({"job": "cron-all"}))[0]
+        else:
+            request = next(times.fetch({"job": "cron-single"}))[0]
+    except:
+        request = "ERROR - TIMESTAMP DB IS NOT WORKING"
+    return request
 
 @app.get("/")
 @limiter.limit("1000/minute")
@@ -115,13 +125,7 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    try:
-        if game is None:
-            request = next(times.fetch({"job": "cron-all"}))[0]
-        else:
-            request = next(times.fetch({"job": "cron-single"}))[0]
-    except:
-        request = "ERROR - TIMESTAMP DB IS NOT WORKING"
+    request = timestamps(game)
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     with open("templates/hosts.txt", "r") as f:
@@ -136,6 +140,15 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
         except:
             path = ""
         hosts = hosts  + "0.0.0.0 " + item["domain"] + path + "\n" 
+    for item in data:
+        # -------------------------------------
+        # change with list yaml format
+        # -------------------------------------
+        try:
+            path = item["path"]
+        except:
+            path = ""
+        hosts = hosts  + "0.0.0.0 " + "www." + item["domain"] + path + "\n" 
     hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
     return hosts
 
