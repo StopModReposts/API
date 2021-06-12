@@ -213,5 +213,53 @@ def get_nbt(request: Request, background_tasks: BackgroundTasks):
     background_tasks.add_task(statcounter)
     raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
     
+@app.get("/stats")
+@limiter.limit("10/minute")
+def get_stats(request: Request):
+    """
+    Get the API and refresh stats.
+    """
+    
+    month = str(datetime.now().month)
+    counter = next(stats.fetch({"month": month}))[0]["total"]
+    cronall = next(times.fetch({"job": "cron-all"}))[0]["updated"]
+    cronsingle = next(times.fetch({"job": "cron-single"}))[0]["updated"]
+    
+    return {"requests_this_month": counter,
+            "latest_cron_refresh": {
+                "cron-all": cronall,
+                "cron-single": cronsingle
+            }}
+    
+@app.get("/shields/{shield}")
+@limiter.limit("20/minute")
+def get_shields(request: Request, shield: str):
+    """
+    Get the data needed to generate a shield.
+    """
+    
+    if shield == "total":
+        sites = 0
+        res = drive.get("sites.yaml")
+        data = yaml.load(res.read(), Loader=yaml.FullLoader)
+        sites = len(data)
+        return {"schemaVersion": 1,
+                "label": "sites",
+                "message": sites,
+                "color": "blue"}
+    elif shield == "refreshed":
+        time = next(times.fetch({"job": "cron-all"}))[0]["updated"]
+        return {"schemaVersion": 1,
+                "label": "refreshed",
+                "message": time,
+                "color": "blue"}
+    elif shield == "visits":
+        month = str(datetime.now().month)
+        visits = next(stats.fetch({"month": month}))[0]["total"]
+        return {"schemaVersion": 1,
+                "label": "visits",
+                "message": visits,
+                "color": "blue"}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=80)
