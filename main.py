@@ -245,20 +245,20 @@ def get_shields(request: Request, shield: str):
         sites = len(data)
         return {"schemaVersion": 1,
                 "label": "sites",
-                "message": sites,
+                "message": str(sites),
                 "color": "blue"}
     elif shield == "refreshed":
         time = next(times.fetch({"job": "cron-all"}))[0]["updated"]
         return {"schemaVersion": 1,
                 "label": "refreshed",
-                "message": time,
+                "message": str(time),
                 "color": "blue"}
     elif shield == "visits":
         month = str(datetime.now().month)
         visits = next(stats.fetch({"month": month}))[0]["total"]
         return {"schemaVersion": 1,
                 "label": "visits",
-                "message": visits,
+                "message": str(visits),
                 "color": "blue"}
 
 if __name__ == "__main__":
