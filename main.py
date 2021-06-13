@@ -251,7 +251,7 @@ def get_shields(request: Request, shield: str):
         time = next(times.fetch({"job": "cron-all"}))[0]["updated"]
         return {"schemaVersion": 1,
                 "label": "refreshed",
-                "message": str(time),
+                "message": str(time) + " UTC",
                 "color": "blue"}
     elif shield == "visits":
         month = str(datetime.now().month)
