@@ -5,7 +5,6 @@ from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResp
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-import air_telemetry as telemetry
 from dotenv import load_dotenv
 import os
 from deta import Deta
@@ -16,7 +15,6 @@ from lxml import objectify, etree
 
 
 load_dotenv()
-TELEMETRY_TOKEN = os.getenv("TELEMETRY_TOKEN")
 DETA_TOKEN = os.getenv("DETA_TOKEN")
 
 app = FastAPI(title="StopModReposts API",
@@ -27,7 +25,6 @@ app = FastAPI(title="StopModReposts API",
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
@@ -131,25 +128,18 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
     with open("templates/hosts.txt", "r") as f:
         hosts = f.read().format(str(request["updated"]))
     hosts = hosts + "\n \n"
+    wwwhosts = ""
     for item in data:
         # -------------------------------------
         # change with list yaml format
         # -------------------------------------
         try:
             path = item["path"]
+            pass
         except:
-            path = ""
-        hosts = hosts  + "0.0.0.0 " + item["domain"] + path + "\n" 
-    for item in data:
-        # -------------------------------------
-        # change with list yaml format
-        # -------------------------------------
-        try:
-            path = item["path"]
-        except:
-            path = ""
-        hosts = hosts  + "0.0.0.0 " + "www." + item["domain"] + path + "\n" 
-    hosts = hosts + "\n" + "# === End of StopModReposts site list ==="
+            hosts = hosts  + "0.0.0.0 " + item["domain"] + "\n" 
+            wwwhosts = wwwhosts + "0.0.0.0 " + "www." + item["domain"] + "\n" 
+    hosts = hosts + wwwhosts + "\n" + "# === End of StopModReposts site list ==="
     return hosts
 
 @app.get("/ublacklist",response_class=PlainTextResponse)
