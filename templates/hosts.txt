@@ -11,6 +11,9 @@
 # Please see the StopModReposts GitHub wiki for more information about this
 # file and other serialized data formats supplied by this API:
 #
+# NOTE: Sites with a path (e.g. /path) have been removed since this is a hosts
+# only list.
+#
 # https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats
 #
 # *******************************************************************************
