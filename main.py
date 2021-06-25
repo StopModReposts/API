@@ -1,7 +1,6 @@
-from urllib.parse import SplitResult
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response, Request
-from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse, FileResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -10,7 +9,7 @@ import os
 from deta import Deta
 from typing import Optional
 import yaml
-from datetime import date, datetime, time
+from datetime import datetime
 from lxml import objectify, etree
 
 
@@ -60,11 +59,6 @@ def timestamps(game):
 @limiter.limit("1000/minute")
 def root(request: Request):
     return RedirectResponse("/docs")
-
-@app.get("/favicon.ico")
-@limiter.limit("1000/minute")
-def favicon(request: Request):
-    return FileResponse("favicon.ico")
 
 @app.get("/sites.yaml")
 @limiter.limit("20/minute")
