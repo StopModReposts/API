@@ -115,8 +115,8 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
     """
     
     background_tasks.add_task(statcounter)
-    if game is None: game = "sites"
     request = timestamps(game)
+    if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     with open("templates/hosts.txt", "r") as f:
