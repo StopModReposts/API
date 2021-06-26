@@ -11,10 +11,15 @@ from typing import Optional
 import yaml
 from datetime import datetime
 from lxml import objectify, etree
-
+import sentry_sdk
 
 load_dotenv()
 DETA_TOKEN = os.getenv("DETA_TOKEN")
+
+sentry_sdk.init(
+    "https://e7f6d56016d747bc88bbdb5a29d0fdd5@o309026.ingest.sentry.io/5834878",
+    traces_sample_rate=1.0
+)
 
 app = FastAPI(title="StopModReposts API",
               description="The official StopModReposts API to get our list in all kinds of formats.",
