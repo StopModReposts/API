@@ -38,8 +38,8 @@ times = deta.Base("smr-timestamps")
 def statcounter():
     try:
         month = str(datetime.now().month)
-        request = next(stats.fetch({"month": month}))[0]
-        stats.put({
+        request = stats.fetch({"month": month}).items[0]
+        stats.update({
             "month": month,
             "total": int(request["total"]) + 1
         }, request["key"])
@@ -53,9 +53,9 @@ def statcounter():
 def timestamps(game):
     try:
         if game is None:
-            request = next(times.fetch({"job": "cron-all"}))[0]
+            request = times.fetch({"job": "cron-all"}).items[0]
         else:
-            request = next(times.fetch({"job": "cron-single"}))[0]
+            request = times.fetch({"job": "cron-single"}).items[0]
     except:
         request = "ERROR - TIMESTAMP DB IS NOT WORKING"
     return request
@@ -210,9 +210,9 @@ def get_stats(request: Request):
     """
     
     month = str(datetime.now().month)
-    counter = next(stats.fetch({"month": month}))[0]["total"]
-    cronall = next(times.fetch({"job": "cron-all"}))[0]["updated"]
-    cronsingle = next(times.fetch({"job": "cron-single"}))[0]["updated"]
+    counter = stats.fetch({"month": month}).items[0]["total"]
+    cronall = times.fetch({"job": "cron-all"}).items[0]["updated"]
+    cronsingle = times.fetch({"job": "cron-single"}).items[0]["updated"]
     
     return {"requests_this_month": counter,
             "latest_cron_refresh": {
@@ -237,14 +237,14 @@ def get_shields(request: Request, shield: str):
                 "message": str(sites),
                 "color": "blue"}
     elif shield == "refreshed":
-        time = next(times.fetch({"job": "cron-all"}))[0]["updated"]
+        time = times.fetch({"job": "cron-all"}).items[0]["updated"]
         return {"schemaVersion": 1,
                 "label": "refreshed",
                 "message": str(time) + " UTC",
                 "color": "blue"}
     elif shield == "visits":
         month = str(datetime.now().month)
-        visits = next(stats.fetch({"month": month}))[0]["total"]
+        visits = stats.fetch({"month": month}).items[0]["total"]
         return {"schemaVersion": 1,
                 "label": "visits",
                 "message": str(visits),
