@@ -253,7 +253,7 @@ def get_shields(request: Request, shield: str):
         month = str(datetime.now().month)
         visits = stats.fetch({"month": month}).items[0]["total"]
         return {"schemaVersion": 1,
-                "label": "visits",
+                "label": "visits this month",
                 "message": str(visits),
                 "color": "blue"}
 
