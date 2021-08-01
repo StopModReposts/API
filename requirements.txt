@@ -10,3 +10,4 @@ lxml
 aiofiles
 slowapi
 sentry-sdk
+secure

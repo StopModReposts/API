@@ -12,6 +12,7 @@ import yaml
 from datetime import datetime
 from lxml import objectify, etree
 import sentry_sdk
+import secure
 
 load_dotenv()
 DETA_TOKEN = os.getenv("DETA_TOKEN")
@@ -33,7 +34,13 @@ deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
 times = deta.Base("smr-timestamps")
-        
+secure_headers = secure.Secure()
+
+@app.middleware("http")
+async def set_secure_headers(request, call_next):
+    response = await call_next(request)
+    secure_headers.framework.fastapi(response)
+    return response
 
 def statcounter():
     try:
