@@ -10,4 +10,4 @@ jobs:
         with:
           deta-access-token: ${{ secrets.DETA_TOKEN }} #Deta access token https://docs.deta.sh/docs/cli/auth
           deta-name: "smr-api" #Deta Micro name https://docs.deta.sh/docs/cli/commands/#deta-clone
-          deta-project: "nv1q39" #Deta project name https://docs.deta.sh/docs/cli/commands/#deta-clone
+          deta-project: "smr" #Deta project name https://docs.deta.sh/docs/cli/commands/#deta-clone
