@@ -13,9 +13,13 @@ from datetime import datetime
 from lxml import objectify, etree
 import sentry_sdk
 import secure
+import air_telemetry as telemetry
+
 
 load_dotenv()
 DETA_TOKEN = os.getenv("DETA_TOKEN")
+TELEMETRY_TOKEN = os.getenv("TELEMETRY_TOKEN")
+
 
 sentry_sdk.init(
     "https://e7f6d56016d747bc88bbdb5a29d0fdd5@o309026.ingest.sentry.io/5834878",
@@ -34,6 +38,7 @@ deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
 times = deta.Base("smr-timestamps")
+logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 
 """
 secure_headers = secure.Secure()
@@ -54,6 +59,7 @@ def statcounter():
             "total": int(request["total"]) + 1
         }, request["key"])
     except:
+        logger.warning(f"No matching month found - created new one")
         month = str(datetime.now().month)
         stats.insert({
             "month": month,
@@ -66,13 +72,15 @@ def timestamps(game):
             request = times.fetch({"job": "cron-all"}).items[0]
         else:
             request = times.fetch({"job": "cron-single"}).items[0]
-    except:
+    except Exception as e:
         request = "ERROR - TIMESTAMP DB IS NOT WORKING"
+        logger.error(f"Timestamp DB not working - {e}")
     return request
 
 @app.get("/")
 @limiter.limit("1000/minute")
 def root(request: Request):
+    logger.info("Accessed /docs")
     return RedirectResponse("/docs")
 
 @app.get("/sites.yaml")
@@ -85,6 +93,7 @@ def get_yaml(request: Request, background_tasks: BackgroundTasks, game: Optional
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
+    logger.info("Accessed /sites.yaml")
     return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         
 @app.get("/sites.json")
@@ -97,6 +106,7 @@ def get_json(request: Request, background_tasks: BackgroundTasks, game: Optional
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
     res = drive.get("{0}.yaml".format(game))
+    logger.info("Accessed /sites.json")
     return yaml.load(res.read(), Loader=yaml.FullLoader)
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
@@ -120,6 +130,7 @@ def get_txt(request: Request, background_tasks: BackgroundTasks, game: Optional[
         except:
             path = ""
         txt = txt + item["domain"] + path + "\n"
+    logger.info("Accessed /sites.txt")
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
@@ -149,6 +160,7 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
             hosts = hosts  + "0.0.0.0 " + item["domain"] + "\n" 
             wwwhosts = wwwhosts + "0.0.0.0 " + "www." + item["domain"] + "\n" 
     hosts = hosts + wwwhosts + "\n" + "# === End of StopModReposts site list ==="
+    logger.info("Accessed /hosts.txt")
     return hosts
 
 @app.get("/ublacklist",response_class=PlainTextResponse)
@@ -200,6 +212,7 @@ def get_xml(request: Request, background_tasks: BackgroundTasks, game: Optional[
     
     objectify.deannotate(sites)
     etree.cleanup_namespaces(sites)
+    logger.info("Accessed /ublacklist")
     return Response(content=etree.tostring(sites, pretty_print=True, xml_declaration=True, with_tail=False), media_type="application/xml")
 
 @app.get("/sites.nbt")
@@ -210,6 +223,7 @@ def get_nbt(request: Request, background_tasks: BackgroundTasks):
     """
     
     background_tasks.add_task(statcounter)
+    logger.info("Accessed /sites.nbt")
     raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
     
 @app.get("/stats")
