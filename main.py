@@ -13,7 +13,7 @@ from datetime import datetime
 from lxml import objectify, etree
 import sentry_sdk
 import secure
-import air_telemetry as telemetry
+from air_telemetry import Endpoint
 
 
 load_dotenv()
@@ -38,7 +38,7 @@ deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
 times = deta.Base("smr-timestamps")
-logger = telemetry.Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
+logger = Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 
 """
 secure_headers = secure.Secure()
