@@ -1,9 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse, StreamingResponse, PlainTextResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 import os
 from deta import Deta
@@ -13,13 +10,9 @@ from datetime import datetime
 from lxml import objectify, etree
 import sentry_sdk
 import secure
-from air_telemetry import Endpoint
-
 
 load_dotenv()
 DETA_TOKEN = os.getenv("DETA_TOKEN")
-TELEMETRY_TOKEN = os.getenv("TELEMETRY_TOKEN")
-
 
 sentry_sdk.init(
     "https://e7f6d56016d747bc88bbdb5a29d0fdd5@o309026.ingest.sentry.io/5834878",
@@ -31,14 +24,10 @@ app = FastAPI(title="StopModReposts API",
               version="2.0",
               docs_url="/debug",
               redoc_url="/docs")
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 deta = Deta(DETA_TOKEN)
 drive = deta.Drive("formats")
 stats = deta.Base("smr-stats")
 times = deta.Base("smr-timestamps")
-logger = Endpoint("https://telemetry.brry.cc", "smr-api", TELEMETRY_TOKEN)
 
 """
 secure_headers = secure.Secure()
@@ -59,7 +48,6 @@ def statcounter():
             "total": int(request["total"]) + 1
         }, request["key"])
     except:
-        logger.warning(f"No matching month found - created new one")
         month = str(datetime.now().month)
         stats.insert({
             "month": month,
@@ -72,19 +60,15 @@ def timestamps(game):
             request = times.fetch({"job": "cron-all"}).items[0]
         else:
             request = times.fetch({"job": "cron-single"}).items[0]
-    except Exception as e:
+    except:
         request = "ERROR - TIMESTAMP DB IS NOT WORKING"
-        logger.error(f"Timestamp DB not working - {e}")
     return request
 
 @app.get("/")
-@limiter.limit("1000/minute")
 def root(request: Request):
-    logger.info("Accessed /docs")
     return RedirectResponse("/docs")
 
 @app.get("/sites.yaml")
-@limiter.limit("20/minute")
 def get_yaml(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the YAML format.
@@ -92,12 +76,10 @@ def get_yaml(request: Request, background_tasks: BackgroundTasks, game: Optional
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
-    logger.info("Accessed /sites.yaml")
+    res = drive.get("{0}2.yaml".format(game))
     return StreamingResponse(res.iter_chunks(1024), media_type="application/yaml")
         
 @app.get("/sites.json")
-@limiter.limit("20/minute")
 def get_json(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the JSON format.
@@ -105,12 +87,10 @@ def get_json(request: Request, background_tasks: BackgroundTasks, game: Optional
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
-    logger.info("Accessed /sites.json")
+    res = drive.get("{0}2.yaml".format(game))
     return yaml.load(res.read(), Loader=yaml.FullLoader)
         
 @app.get("/sites.txt", response_class=PlainTextResponse)
-@limiter.limit("20/minute")
 def get_txt(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the TXT format.
@@ -118,23 +98,18 @@ def get_txt(request: Request, background_tasks: BackgroundTasks, game: Optional[
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
+    res = drive.get("{0}2.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     txt = ""
     for item in data:
-        # -------------------------------------
-        # change with list yaml format
-        # -------------------------------------
-        try:
+        if item["path"] != "/":
             path = item["path"]
-        except:
+        else:
             path = ""
         txt = txt + item["domain"] + path + "\n"
-    logger.info("Accessed /sites.txt")
     return txt
     
 @app.get("/hosts.txt", response_class=PlainTextResponse)
-@limiter.limit("20/minute")
 def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the HOSTS.TXT format.
@@ -143,28 +118,20 @@ def get_hosts(request: Request, background_tasks: BackgroundTasks, game: Optiona
     background_tasks.add_task(statcounter)
     request = timestamps(game)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
+    res = drive.get("{0}2.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     with open("templates/hosts.txt", "r") as f:
         hosts = f.read().format(str(request["updated"]))
     hosts = hosts + "\n \n"
     wwwhosts = ""
     for item in data:
-        # -------------------------------------
-        # change with list yaml format
-        # -------------------------------------
-        try:
-            path = item["path"]
-            pass
-        except:
+        if item["path"] == "/":
             hosts = hosts  + "0.0.0.0 " + item["domain"] + "\n" 
             wwwhosts = wwwhosts + "0.0.0.0 " + "www." + item["domain"] + "\n" 
     hosts = hosts + wwwhosts + "\n" + "# === End of StopModReposts site list ==="
-    logger.info("Accessed /hosts.txt")
     return hosts
 
 @app.get("/ublacklist",response_class=PlainTextResponse)
-@limiter.limit("20/minute")
 def get_ublacklist(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the uBlacklist format.
@@ -172,22 +139,18 @@ def get_ublacklist(request: Request, background_tasks: BackgroundTasks, game: Op
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
+    res = drive.get("{0}2.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     blacklist = ""
     for item in data:
-        try:
-            # -------------------------------------
-            # remove/change with list yaml format
-            # -------------------------------------
+        if item["path"] != "/":
             path = item["path"] + "/*"
-        except:
+        else:
             path = "/*"
         blacklist = blacklist + "*://*." + item["domain"] + path + "\n"
     return blacklist
 
 @app.get("/sites.xml")
-@limiter.limit("20/minute")
 def get_xml(request: Request, background_tasks: BackgroundTasks, game: Optional[str] = None):
     """
     Get the combined list in the XML format.
@@ -195,39 +158,33 @@ def get_xml(request: Request, background_tasks: BackgroundTasks, game: Optional[
     
     background_tasks.add_task(statcounter)
     if game is None: game = "sites"
-    res = drive.get("{0}.yaml".format(game))
+    res = drive.get("{0}2.yaml".format(game))
     data = yaml.load(res.read(), Loader=yaml.FullLoader)
     sites = objectify.Element("sites", nsmap='', _pytype='')
-    # -------------------------------------
-    # change with list yaml format
-    # -------------------------------------
+
     for item in data:
         site = objectify.Element("site", nsmap='', _pytype='')
         site.domain = item["domain"]
-        site.date = "15. September 2019"
-        site.reason = "Reposting site"
-        site.notes = "Reposting site"
-        site.path = "/"
+        site.notes = item["notes"]
+        site.path = item["path"]
+        site.reason = item["reason"]
+
         sites.append(site)
     
     objectify.deannotate(sites)
     etree.cleanup_namespaces(sites)
-    logger.info("Accessed /ublacklist")
     return Response(content=etree.tostring(sites, pretty_print=True, xml_declaration=True, with_tail=False), media_type="application/xml")
 
 @app.get("/sites.nbt")
-@limiter.limit("20/minute")
 def get_nbt(request: Request, background_tasks: BackgroundTasks):
     """
     Get the combined list in the NBT format **(deprecated - will be removed soon)**.
     """
     
     background_tasks.add_task(statcounter)
-    logger.info("Accessed /sites.nbt")
-    raise HTTPException(status_code=400, detail="This format is deprecated and will soon be removed. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
+    raise HTTPException(status_code=400, detail="This format is deprecated. Please use a different one: https://github.com/StopModReposts/Illegal-Mod-Sites/wiki/API-access-and-formats")
     
 @app.get("/stats")
-@limiter.limit("10/minute")
 def get_stats(request: Request):
     """
     Get the API and refresh stats.
@@ -245,7 +202,6 @@ def get_stats(request: Request):
             }}
     
 @app.get("/shields/{shield}")
-@limiter.limit("20/minute")
 def get_shields(request: Request, shield: str):
     """
     Get the data needed to generate a shield.
@@ -274,5 +230,5 @@ def get_shields(request: Request, shield: str):
                 "message": str(visits),
                 "color": "blue"}
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=80)
+#if __name__ == "__main__":
+#    uvicorn.run(app, host="localhost", port=80)
